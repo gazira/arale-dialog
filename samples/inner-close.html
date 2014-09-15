@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<input type="button" value="我是框架内的按钮，点击可以关闭窗口" id="btn"/>
+<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+<script>
+    document.getElementById('btn').onclick = function() {
+        window.frameElement.trigger('close');
+    }
+</script>
+</body>
+</html>
