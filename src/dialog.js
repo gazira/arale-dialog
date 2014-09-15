@@ -1,8 +1,10 @@
 var $ = require('jquery'),
-    Overlay = require('arale-overlay'),
-    mask = Overlay.Mask,
-    Events = require('arale-events'),
-    Templatable = require('arale-templatable');
+    Overlay = require('overlay'),
+    mask = require('mask'),
+    Events = require('events'),
+    Templatable = require('templatable');
+
+var Z_INDEX = 1000;
 
 // Dialog
 // ---
@@ -53,7 +55,7 @@ var Dialog = Overlay.extend({
     width: 500,
 
     // 默认高度
-    height: null,
+    height: 300,
 
     // iframe 类型时，dialog 的最初高度
     initialHeight: 300,
@@ -62,7 +64,7 @@ var Dialog = Overlay.extend({
     effect: 'none',
 
     // 不用解释了吧
-    zIndex: 999,
+    zIndex: Z_INDEX,
 
     // 是否自适应高度
     autoFit: true,
@@ -94,6 +96,7 @@ var Dialog = Overlay.extend({
     });
     Dialog.superclass.parseElement.call(this);
     this.contentElement = this.$('[data-role=content]');
+    this.mainElement = this.$('[data-role=main]');
 
     // 必要的样式
     this.contentElement.css({
@@ -123,12 +126,19 @@ var Dialog = Overlay.extend({
         this._ajaxHtml();
       } else {
         // iframe 还未请求完，先设置一个固定高度
-        !this.get('height') && this.contentElement.css('height', this.get('initialHeight'));
+        !this.get('height') && this.mainElement.css('height', this.get('initialHeight'));
         this._showIframe();
       }
     }
-
     Dialog.superclass.show.call(this);
+    this.after('show', function() {
+      if(this.get('height')) {
+        var headerHeight = this.get('header') === false ? 0 : this.$('[data-role=header]').outerHeight();
+        var footerHeight = this.get('footer') === false ? 0 : this.$('[data-role=footer]').outerHeight();
+        this.mainElement.height(this.get('height') - headerHeight - footerHeight);
+      }
+    });
+
     return this;
   },
 
@@ -136,14 +146,13 @@ var Dialog = Overlay.extend({
     // 把 iframe 状态复原
     if (this._type === 'iframe' && this.iframe) {
       this.iframe.attr({
-        src: 'javascript:\'\';'
+        src: 'about:_blank'
       });
       // 原来只是将 iframe 的状态复原
       // 但是发现在 IE6 下，将 src 置为 javascript:''; 会出现 404 页面
       this.iframe.remove();
       this.iframe = null;
     }
-
     Dialog.superclass.hide.call(this);
     clearInterval(this._interval);
     delete this._interval;
@@ -152,7 +161,6 @@ var Dialog = Overlay.extend({
 
   destroy: function () {
     this.element.remove();
-    this._hideMask();
     clearInterval(this._interval);
     return Dialog.superclass.destroy.call(this);
   },
@@ -173,6 +181,18 @@ var Dialog = Overlay.extend({
 
   // onRender
   // ---
+  _onRenderHeader: function(val) {
+      this.$('[data-role=header]')[val ? 'show' : 'hide']();
+  },
+  _onRenderFooter: function(val) {
+      this.$('[data-role=footer]')[val ? 'show' : 'hide']();
+  },
+  _onRenderTitle: function(val) {
+      this.$('[data-role=title]').eq(0).html(val);
+  },
+  _onRenderClosable: function(val) {
+      this.$('[data-role=close]').eq(0)[val === false ? 'hide' : 'show']();
+  },
   _onRenderContent: function (val) {
     if (this._type !== 'iframe') {
       var value;
@@ -202,16 +222,17 @@ var Dialog = Overlay.extend({
 
   // 覆盖 overlay，提供动画
   _onRenderVisible: function (val) {
-    if (val) {
-      if (this.get('effect') === 'fade') {
-        // 固定 300 的动画时长，暂不可定制
-        this.element.fadeIn(300);
+    var effect = this.get('effect');
+    if(val) {
+      if($.isFunction(effect)) {
+          effect.call(this, this.element);
       } else {
         this.element.show();
       }
     } else {
       this.element.hide();
     }
+
   },
 
   // 私有方法
@@ -228,50 +249,32 @@ var Dialog = Overlay.extend({
 
   // 绑定遮罩层事件
   _setupMask: function () {
-    var that = this;
+      var that = this;
+      var action = function() {
+          that.hide();
+      };
+      this.before('show', function() {
+          this.set('zIndex', Z_INDEX);
+          Z_INDEX += 2;
+          var zIndex = this.get('zIndex');
+          var hasMask = this.get('hasMask');
+          if(hasMask) {
+              mask.set('zIndex', zIndex - 1).show();
 
-    // 存放 mask 对应的对话框
-    mask._dialogs = mask._dialogs || [];
-
-    this.after('show', function () {
-      if (!this.get('hasMask')) {
-        return;
-      }
-      // not using the z-index
-      // because multiable dialogs may share same mask
-      mask.set('zIndex', that.get('zIndex')).show();
-      mask.element.insertBefore(that.element);
-
-      // 避免重复存放
-      var existed = false;
-      for (var i = 0; i < mask._dialogs.length; i++) {
-        if (mask._dialogs[i] === that) {
-          existed = true;
-        }
-      }
-      // 依次存放对应的对话框
-      if (!existed) {
-        mask._dialogs.push(that);
-      }
-    });
-
-    this.after('hide', this._hideMask);
-  },
-
-  // 隐藏 mask
-  _hideMask: function () {
-    if (!this.get('hasMask')) {
-      return;
-    }
-
-    mask._dialogs && mask._dialogs.pop();
-    if (mask._dialogs && mask._dialogs.length > 0) {
-      var last = mask._dialogs[mask._dialogs.length - 1];
-      mask.set('zIndex', last.get('zIndex'));
-      mask.element.insertBefore(last.element);
-    } else {
-      mask.hide();
-    }
+              if(hasMask.hideOnClick) { // 点击遮罩关闭对话框
+                  mask.element.one('click', action);
+              }
+          }
+      });
+      this.after('hide', function() {
+          var hasMask = this.get('hasMask');
+          if(hasMask) {
+              mask.hide();
+              if(hasMask.hideOnClick) {
+                  mask.element.off('click', action);
+              }
+          }
+      });
   },
 
   // 绑定元素聚焦状态
@@ -339,7 +342,7 @@ var Dialog = Overlay.extend({
     var that = this;
 
     this.iframe = $('<iframe>', {
-      src: 'javascript:\'\';',
+      src: 'about:blank',
       scrolling: 'no',
       frameborder: 'no',
       allowTransparency: 'true',
@@ -390,10 +393,10 @@ var Dialog = Overlay.extend({
 
   _ajaxHtml: function () {
     var that = this;
-    this.contentElement.css('height', this.get('initialHeight'));
+    this.mainElement.css('height', this.get('initialHeight'));
     this.contentElement.load(this.get('content'), function () {
       that._setPosition();
-      that.contentElement.css('height', '');
+      that.mainElement.css('height', '');
       that.trigger('complete:show');
     });
   }
@@ -411,6 +414,7 @@ function toTabed(element) {
   if (element.attr('tabindex') == null) {
     element.attr('tabindex', '-1');
   }
+  element.css('outline', 'none').attr('hidefocus', 'true');
 }
 
 // 获取 iframe 内部的高度

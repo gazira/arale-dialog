@@ -1,7 +1,22 @@
 var $ = require('jquery'),
+    Handlebars = require('handlebars'),
     Dialog = require('./dialog');
 
 var template = require('./confirmbox.handlebars');
+
+var btnId = 0;
+var defaultConfig = {
+    title: '',
+    content: '',
+    width: 375,
+    height: 275,
+    buttons: [
+        {
+            text: '关闭',
+            action: 'close'
+        }
+    ]
+};
 
 // ConfirmBox
 // -------
@@ -9,111 +24,106 @@ var template = require('./confirmbox.handlebars');
 var ConfirmBox = Dialog.extend({
 
   attrs: {
-    title: '默认标题',
-
-    confirmTpl: '<a class="ui-dialog-button-orange" href="javascript:;">确定</a>',
-
-    cancelTpl: '<a class="ui-dialog-button-white" href="javascript:;">取消</a>',
-
-    message: '默认内容'
+    title: defaultConfig.title,
+    content: defaultConfig.content,
+    width: defaultConfig.width,
+    height: defaultConfig.height,
+    buttonTpl: '<button type="button" class="{{classPrefix}}-btn" data-action="{{action}}">{{text}}</button>',
+    buttons: []
   },
 
   setup: function () {
     ConfirmBox.superclass.setup.call(this);
 
-    var model = {
-      classPrefix: this.get('classPrefix'),
-      message: this.get('message'),
-      title: this.get('title'),
-      confirmTpl: this.get('confirmTpl'),
-      cancelTpl: this.get('cancelTpl'),
-      hasFoot: this.get('confirmTpl') || this.get('cancelTpl')
-    };
-    this.set('content', template(model));
+    var buttons = this.get('buttons');
+    var container = this.$('[data-role=buttons]').eq(0);
+    var html = [];
+    for(var i = 0, len = buttons.length; i < len; i++) {
+        var btn = buttons[i];
+        var actionName = typeof btn.action === 'string' ? btn.action : 'click_' + (++btnId);
+        html.push(Handlebars.compile(this.get('buttonTpl'))({
+            classPrefix: btn.className || this.get('classPrefix'),
+            action: actionName,
+            text: btn.text
+        }));
+        if(actionName !== 'close' && actionName !== 'confirm') {
+            this.delegateEvents('click [data-action=' + actionName + ']', (function(actionName) {
+                return function(e) {
+                    e.preventDefault();
+                    this.trigger(actionName);
+                };
+            })(actionName));
+        }
+    }
+    container.html(html.join(''));
+    this.after('show', function() {
+        for(var i = 0, len = buttons.length; i < len; i++) {
+            var btn = buttons[i];
+            if(btn.focus === true) {
+                container.children().eq(i).focus();
+            }
+        }
+    })
   },
 
   events: {
-    'click [data-role=confirm]': function (e) {
+    'click [data-action=confirm]': function (e) {
       e.preventDefault();
       this.trigger('confirm');
     },
-    'click [data-role=cancel]': function (e) {
+    'click [data-action=close]': function (e) {
       e.preventDefault();
-      this.trigger('cancel');
+      this.trigger('close');
       this.hide();
     }
   },
 
-  _onChangeMessage: function (val) {
-    this.$('[data-role=message]').html(val);
+  _onChangeContent: function (val) {
+    this.$('[data-role=content]').html(val);
   },
 
   _onChangeTitle: function (val) {
     this.$('[data-role=title]').html(val);
-  },
-
-  _onChangeConfirmTpl: function (val) {
-    this.$('[data-role=confirm]').html(val);
-  },
-
-  _onChangeCancelTpl: function (val) {
-    this.$('[data-role=cancel]').html(val);
   }
-
 });
 
-ConfirmBox.alert = function (message, callback, options) {
-  var defaults = {
-    message: message,
-    title: '',
-    cancelTpl: '',
-    closeTpl: '',
-    onConfirm: function () {
-      callback && callback();
-      this.hide();
+ConfirmBox.alert = function (options) {
+    options = options || {};
+    options = $.extend(true, {}, defaultConfig, options);
+    if(options.buttons.length !== 1) {
+        options.buttons = [options.buttons[0]];
     }
-  };
-  new ConfirmBox($.extend(null, defaults, options)).show().after('hide', function () {
-    this.destroy();
-  });
+    return new ConfirmBox(options).show().after('hide', function() {
+        this.destroy();
+    });
 };
 
-ConfirmBox.confirm = function (message, title, onConfirm, onCancel, options) {
-  // support confirm(message, title, onConfirm, options)
-  if (typeof onCancel === 'object' && !options) {
-    options = onCancel;
-  }
-
-  var defaults = {
-    message: message,
-    title: title || '确认框',
-    closeTpl: '',
-    onConfirm: function () {
-      onConfirm && onConfirm();
-      this.hide();
-    },
-    onCancel: function () {
-      onCancel && onCancel();
-      this.hide();
-    }
-  };
-  new ConfirmBox($.extend(null, defaults, options)).show().after('hide', function () {
-    this.destroy();
-  });
+ConfirmBox.confirm = function (options) {
+    options = options || {};
+    options = $.extend(true, {
+        buttons: [
+            {
+                text: '确认',
+                action: 'confirm'
+            },
+            {
+                text: '取消',
+                action: 'close'
+            }
+        ]
+    }, defaultConfig, options);
+    options.buttons = options.buttons.slice(0, 2);
+    return new ConfirmBox(options).show().after('hide', function() {
+        this.destroy();
+    });
 };
 
-ConfirmBox.show = function (message, callback, options) {
-  var defaults = {
-    message: message,
-    title: '',
-    confirmTpl: false,
-    cancelTpl: false
-  };
-  new ConfirmBox($.extend(null, defaults, options)).show().before('hide', function () {
-    callback && callback();
-  }).after('hide', function () {
-    this.destroy();
-  });
+ConfirmBox.show = function (options) {
+    options = options || {};
+    options = $.extend({}, defaultConfig, options);
+    return new ConfirmBox(options).show().after('hide', function() {
+        this.destroy();
+    });
 };
 
 module.exports = ConfirmBox;
