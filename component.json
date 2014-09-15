@@ -1,0 +1,15 @@
+{
+    "name": "gazira-dialog",
+    "version": "0.0.1",
+    "main": "index.js",
+    "dependencies": {
+        "component/jquery": "1.0.0",
+        "gazira/overlay": "master",
+        "gazira/mask": "master",
+        "gazira/events": "master",
+        "gazira/sticky": "master",
+        "gazira/scroll": "master",
+        "gazira/templatable": "master",
+        "gazira/handlebars": "master"
+    }
+}
