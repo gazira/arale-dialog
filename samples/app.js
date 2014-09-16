@@ -226,12 +226,6 @@ $(function () {
                 this.destroy();
             });
     });
-    $('#btn62').click(function () {
-        ConfirmBox.alert({
-            fixed: false,
-            content: '不是fixed'
-        });
-    });
     //----------------------------------------
     $('#btn71').click(function () {
         new Dialog({
