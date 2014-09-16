@@ -6,6 +6,20 @@ var $ = require('jquery'),
 
 var Z_INDEX = 1000;
 
+// 正在显示的dialogs，用于处理esc关闭最后显示的dialog
+var onshowDialogs = [];
+$(document).on('keyup.esc', function(e) {
+  if (e.keyCode === 27) {
+    var len = onshowDialogs.length;
+    if(len > 0) {
+      var _dialog = onshowDialogs[len - 1];
+      if(_dialog.get('visible')) {
+        _dialog.hide();
+      }
+    }
+  }
+});
+
 // Dialog
 // ---
 // Dialog 是通用对话框组件，提供显隐关闭、遮罩层、内嵌iframe、内容区域自定义功能。
@@ -132,6 +146,7 @@ var Dialog = Overlay.extend({
     }
     Dialog.superclass.show.call(this);
     this.after('show', function() {
+      onshowDialogs.push(this);
       if(this.get('height')) {
         var headerHeight = this.get('header') === false ? 0 : this.$('[data-role=header]').outerHeight();
         var footerHeight = this.get('footer') === false ? 0 : this.$('[data-role=footer]').outerHeight();
@@ -154,6 +169,7 @@ var Dialog = Overlay.extend({
       this.iframe = null;
     }
     Dialog.superclass.hide.call(this);
+    onshowDialogs.pop();
     clearInterval(this._interval);
     delete this._interval;
     return this;
@@ -170,7 +186,6 @@ var Dialog = Overlay.extend({
 
     this._setupTrigger();
     this._setupMask();
-    this._setupKeyEvents();
     this._setupFocus();
     toTabed(this.element);
     toTabed(this.get('trigger'));
@@ -286,15 +301,6 @@ var Dialog = Overlay.extend({
       // 关于网页中浮层消失后的焦点处理
       // http://www.qt06.com/post/280/
       this.activeTrigger && this.activeTrigger.focus();
-    });
-  },
-
-  // 绑定键盘事件，ESC关闭窗口
-  _setupKeyEvents: function () {
-    this.delegateEvents($(document), 'keyup.esc', function (e) {
-      if (e.keyCode === 27) {
-        this.get('visible') && this.hide();
-      }
     });
   },
 
