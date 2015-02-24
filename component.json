@@ -4,9 +4,9 @@
     "main": "index.js",
     "dependencies": {
         "component/jquery": "1.0.0",
-        "gazira/overlay": "master",
-        "gazira/mask": "master",
-        "gazira/events": "master",
+        "gazira/arale-overlay": "1.2.0",
+        "gazira/gazira-mask": "0.0.1",
+        "gazira/arale-events": "1.2.0",
         "gazira/sticky": "master",
         "gazira/scroll": "master",
         "gazira/templatable": "master",
