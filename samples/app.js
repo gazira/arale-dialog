@@ -1,7 +1,7 @@
-var $ = require('component/jquery@1.0.0');
-var Dialog = require('../dialog');
+var $ = require('jquery');
+var Dialog = require('arale-dialog');
 var ConfirmBox = Dialog.ConfirmBox;
-require('gazira/easing@master');
+require('arale-easing');
 
 $(function () {
     $('#btn11').click(function () {
