@@ -22,4 +22,5 @@ sea-modules
 spm_modules
 .cache
 dist/
-/components
+components/
+spm_modules/
