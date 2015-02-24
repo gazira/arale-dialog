@@ -1,8 +1,8 @@
 var $ = require('jquery'),
-    Overlay = require('overlay'),
-    mask = require('mask'),
-    Events = require('events'),
-    Templatable = require('templatable');
+    Overlay = require('arale-overlay'),
+    mask = require('gazira-mask'),
+    Events = require('arale-events'),
+    Templatable = require('arale-templatable');
 
 var Z_INDEX = 1000;
 
