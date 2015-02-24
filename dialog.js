@@ -1,2 +1,4 @@
-module.exports = require('./src/dialog');
-module.exports.ConfirmBox = require('./src/confirmbox');
+var Dialog = require('./src/dialog');
+Dialog.ConfirmBox = require('./src/confirmbox');
+
+module.exports = Dialog;
