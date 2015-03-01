@@ -100,7 +100,7 @@ ConfirmBox.alert = function (options) {
 
 ConfirmBox.confirm = function (options) {
     options = options || {};
-    options = $.extend(true, {
+    options = $.extend(true, defaultConfig, {
         buttons: [
             {
                 text: '确认',
@@ -111,7 +111,7 @@ ConfirmBox.confirm = function (options) {
                 action: 'close'
             }
         ]
-    }, defaultConfig, options);
+    }, options);
     options.buttons = options.buttons.slice(0, 2);
     return new ConfirmBox(options).show().after('hide', function() {
         this.destroy();
