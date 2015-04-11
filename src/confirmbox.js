@@ -1,5 +1,5 @@
 var $ = require('jquery'),
-    Handlebars = require('handlebars'),
+    btnTpl = require('./btn.handlebars'),
     Dialog = require('./dialog');
 
 var template = require('./confirmbox.handlebars');
@@ -28,7 +28,7 @@ var ConfirmBox = Dialog.extend({
     content: defaultConfig.content,
     width: defaultConfig.width,
     height: defaultConfig.height,
-    buttonTpl: '<button type="button" class="{{classPrefix}}-btn" data-action="{{action}}">{{text}}</button>',
+    buttonTpl: '',
     buttons: []
   },
 
@@ -41,8 +41,8 @@ var ConfirmBox = Dialog.extend({
     for(var i = 0, len = buttons.length; i < len; i++) {
         var btn = buttons[i];
         var actionName = typeof btn.action === 'string' ? btn.action : 'click_' + (++btnId);
-        html.push(Handlebars.compile(this.get('buttonTpl'))({
-            classPrefix: btn.className || this.get('classPrefix'),
+        html.push(btnTpl({
+            className: btn.className || 'btn-default',
             action: actionName,
             text: btn.text
         }));
@@ -50,7 +50,7 @@ var ConfirmBox = Dialog.extend({
             this.delegateEvents('click [data-action=' + actionName + ']', (function(actionName) {
                 return function(e) {
                     e.preventDefault();
-                    this.trigger(actionName);
+                    this.trigger(actionName, e, $(e.target));
                 };
             })(actionName));
         }
